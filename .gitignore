@@ -1,0 +1,6 @@
+lib
+include
+bin
+*.png
+src/glad.c
+src/lodepng.c
