@@ -24,13 +24,15 @@ void encodeOneStep(const char* filename, const unsigned char* image, unsigned wi
 
 int main(int argc, char const **argv) {
 	printf("GLSL 2 PNG\n");
-	int textureSize = 512;
+	int textureSize;
 
-	if (argc != 3) {
-		printf("Usage: glsl2png [GLSL source file] [PNG output file]\n");
+	if (argc != 4) {
+		printf("Usage: glsl2png [GLSL source file] [PNG output file] [size]\n");
 		return -1;
 
 	}
+
+	textureSize = atoi(argv[3]);
 
 	// Open the GLSL source file
 	char *fragSource = NULL;
@@ -70,7 +72,7 @@ int main(int argc, char const **argv) {
 	#endif
 
 	// Create Window
-	GLFWwindow* window = glfwCreateWindow(textureSize, textureSize, "GLSL 2 PNG", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(1, 1, "GLSL 2 PNG", NULL, NULL);
 	if (window == NULL) {
 		printf("Failed to create GLFW window\n");
 		glfwTerminate();
@@ -86,6 +88,19 @@ int main(int argc, char const **argv) {
 		return -1;
 
 	}
+
+	// Create the framebuffer and texture
+	unsigned int framebuffer;
+	glGenFramebuffers(1, &framebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+	unsigned int texture;
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureSize, textureSize, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
 
 	// Compile Shaders
 
@@ -142,6 +157,7 @@ int main(int argc, char const **argv) {
 		-1.0f,  1.0f, 1.0f   // top left
 	};
 
+
 	unsigned int indices[] = {
 		0, 1, 3,  // first Triangle
 		1, 2, 3   // second Triangle
@@ -166,11 +182,20 @@ int main(int argc, char const **argv) {
 	glBindVertexArray(0);
 
 	// Render
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer);
+	glViewport(0, 0, textureSize, textureSize);
 	glUseProgram(shaderProgram);
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
+	// Save image
 	GLubyte *image = malloc(textureSize * textureSize * 4);
+	if (image == NULL) {
+		printf("Couldn't create image.\n");
+		return -1;
+
+	}
+
 	glReadPixels(0, 0, textureSize, textureSize, GL_RGBA, GL_UNSIGNED_BYTE, image);
 	encodeOneStep(argv[2], image, textureSize, textureSize);
 	free(image);
