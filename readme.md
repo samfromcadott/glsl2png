@@ -6,7 +6,7 @@ A command line program that renders the output of a GLSL fragment shader as a PN
 Usage
 ----------
 
-	glsl2png [GLSL source file] [PNG output file]
+	glsl2png [GLSL source file] [PNG output file] [size]
 
 Requirements
 ----------
